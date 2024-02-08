@@ -8,6 +8,7 @@ var current_main_screen_name: String
 
 func _enter_tree() -> void:
 	main_screen_changed.connect(_on_main_screen_changed)
+	scene_changed.connect(_on_scene_changed)
 	EditorInterface.get_selection().selection_changed.connect(_on_editor_selection_changed)
 	
 	# Initialise preview panel and add to main screen.
@@ -35,6 +36,41 @@ func _on_main_screen_changed(screen_name: String) -> void:
 	preview.unlink_camera()
 	_on_editor_selection_changed()
 
+
+func _on_scene_changed(new_scene):
+	print("scene changed to ", new_scene)
+	
+	if not is_main_screen_viewport():
+		# This hides the preview "container" and not the preview itself, allowing
+		# any locked previews to remain visible once switching back to 3D tab.
+		preview.visible = false
+		return
+		
+	preview.visible = true
+
+	if new_scene is Camera3D:
+		preview.link_with_camera_3d(new_scene)
+		preview.request_show()
+		return
+	
+	#var selected_nodes = EditorInterface.get_selection().get_selected_nodes()
+	var selected_nodes = new_scene.get_children()
+	
+	var selected_camera_3d: Camera3D = update_camera_3d_from_selected_nodes(selected_nodes)
+	var selected_camera_2d: Camera2D = find_camera_2d_or_null(selected_nodes)
+	
+	if selected_camera_3d and current_main_screen_name == "3D":
+		preview.link_with_camera_3d(selected_camera_3d)
+		preview.request_show()
+	
+	elif selected_camera_2d and current_main_screen_name == "2D":
+		preview.link_with_camera_2d(selected_camera_2d)
+		preview.request_show()
+	
+	else:
+		preview.request_hide()
+
+
 func _on_editor_selection_changed() -> void:
 	if not is_main_screen_viewport():
 		# This hides the preview "container" and not the preview itself, allowing
@@ -45,6 +81,8 @@ func _on_editor_selection_changed() -> void:
 	preview.visible = true
 	
 	var selected_nodes = EditorInterface.get_selection().get_selected_nodes()
+	if selected_nodes.size() <= 0:
+		return
 	
 	var selected_camera_3d: Camera3D = update_camera_3d_from_selected_nodes(selected_nodes)
 	var selected_camera_2d: Camera2D = find_camera_2d_or_null(selected_nodes)
