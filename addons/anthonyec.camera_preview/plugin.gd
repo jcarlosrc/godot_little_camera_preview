@@ -46,7 +46,7 @@ func _on_editor_selection_changed() -> void:
 	
 	var selected_nodes = EditorInterface.get_selection().get_selected_nodes()
 	
-	var selected_camera_3d: Camera3D = find_camera_3d_or_null(selected_nodes)
+	var selected_camera_3d: Camera3D = update_camera_3d_from_selected_nodes(selected_nodes)
 	var selected_camera_2d: Camera2D = find_camera_2d_or_null(selected_nodes)
 	
 	if selected_camera_3d and current_main_screen_name == "3D":
@@ -72,7 +72,32 @@ func find_camera_3d_or_null(nodes: Array[Node]) -> Camera3D:
 			break
 			
 	return camera
+
+func update_camera_3d_from_selected_nodes(selected_nodes: Array[Node]) -> Camera3D:
+	var camera: Camera3D
 	
+	for selected_node in selected_nodes:
+		#Check if node is camera 3D first.
+		if selected_node is Camera3D:
+			camera = selected_node as Camera3D
+			return camera
+		# Check for children explicitly because owner can not be itself
+		for node in selected_node.get_children():
+			if node is Camera3D:
+				camera = node as Camera3D
+				break
+		if camera:
+			return camera
+		#Check for children of owner
+		print("selected node ", selected_node," owner is ", selected_node.owner)
+		if selected_node and selected_node.owner:
+			for node in selected_node.owner.get_children():
+				if node is Camera3D:
+					camera = node as Camera3D
+					break
+			
+	return camera	
+
 func find_camera_2d_or_null(nodes: Array[Node]) -> Camera2D:
 	var camera: Camera2D
 	
